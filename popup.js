@@ -9,6 +9,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadRepos(data.last_repo, data.last_branch);
     }
 
+const donateBtn = document.getElementById('donate-btn');
+    const donateModal = document.getElementById('donate-modal');
+    const closeDonate = document.getElementById('close-donate');
+
+    // 点击显示打赏层
+    donateBtn.onclick = (e) => {
+        e.preventDefault();
+        donateModal.style.display = 'flex';
+    };
+
+    // 点击关闭按钮隐藏
+    closeDonate.onclick = () => {
+        donateModal.style.display = 'none';
+    };
+
+    // 点击遮罩层空白处也隐藏
+    donateModal.onclick = (e) => {
+        if (e.target === donateModal) donateModal.style.display = 'none';
+    };
+
     // 1. 左上角 Logo 跳转逻辑
     document.getElementById('brand-link').onclick = () => {
         const repo = document.getElementById('repo-select').value;
