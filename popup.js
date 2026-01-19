@@ -9,11 +9,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadRepos(data.last_repo, data.last_branch);
     }
 
+    // 1. 左上角 Logo 跳转逻辑
     document.getElementById('brand-link').onclick = () => {
         const repo = document.getElementById('repo-select').value;
         const url = repo ? `https://github.com/${repo}` : 'https://github.com/';
-        window.open(url, '_blank');
+        chrome.tabs.create({ url: url }); // 使用插件标准 API 跳转
     };
+
+    // 2. 右下角项目仓库地址跳转逻辑 (新增)
+    const projectLink = document.getElementById('project-link');
+    if (projectLink) {
+        projectLink.onclick = (e) => {
+            e.preventDefault(); 
+            chrome.tabs.create({ url: projectLink.href });
+        };
+    }
 
     document.getElementById('limit-info').onclick = (e) => {
         e.preventDefault();
@@ -208,7 +218,8 @@ document.getElementById('upload-btn').onclick = async () => {
 
     btn.disabled = true; btn.innerText = "处理中...";
     try {
-        let finalUrl = "";
+        let urlList = []; // 用于存储所有成功上传的链接
+        
         for (const file of selectedFiles) {
             const base64 = await new Promise(r => { 
                 const rd = new FileReader(); 
@@ -216,7 +227,7 @@ document.getElementById('upload-btn').onclick = async () => {
                 rd.onload = () => r(rd.result.split(',')[1]); 
             });
 
-            // 【核心改动】检查文件是否存在以获取 SHA (实现覆盖)
+            // 自动覆盖逻辑 (获取 SHA)
             let fileSha = null;
             try {
                 const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${file.name}?ref=${branch}`, {
@@ -226,14 +237,14 @@ document.getElementById('upload-btn').onclick = async () => {
                     const fileData = await checkRes.json();
                     fileSha = fileData.sha;
                 }
-            } catch (e) { /* 文件不存在 */ }
+            } catch (e) {}
 
             const uploadBody = {
                 message: `J-git upload: ${file.name}`,
                 content: base64,
                 branch: branch
             };
-            if (fileSha) uploadBody.sha = fileSha; // 如果有 SHA，GitHub 就会执行更新操作
+            if (fileSha) uploadBody.sha = fileSha;
 
             const uploadRes = await fetch(`https://api.github.com/repos/${repo}/contents/${file.name}`, {
                 method: 'PUT',
@@ -241,18 +252,26 @@ document.getElementById('upload-btn').onclick = async () => {
                 body: JSON.stringify(uploadBody)
             });
 
-            if (!uploadRes.ok) throw new Error("上传失败");
-            finalUrl = `https://github.com/${repo}/blob/${branch}/${file.name}`;
+            if (uploadRes.ok) {
+                // 将当前文件链接加入数组
+                const fileUrl = `https://github.com/${repo}/blob/${branch}/${file.name}`;
+                urlList.push(fileUrl);
+            }
         }
 
-        if (finalUrl) {
-            navigator.clipboard.writeText(finalUrl).then(() => {
-                alert("🎉 上传成功！链接已复制到剪贴板。");
-            }).catch(() => alert("🎉 上传成功！"));
+        // 核心改动：合并所有链接并复制
+        if (urlList.length > 0) {
+            const copyText = urlList.join('\n'); // 用换行符连接多个链接
+            navigator.clipboard.writeText(copyText).then(() => {
+                alert(`🎉 成功上传 ${urlList.length} 个文件！\n链接已全部复制到剪贴板。`);
+            }).catch(() => alert(`🎉 上传成功！`));
         }
         resetUI();
-    } catch (e) { alert("上传失败，请检查网络或 Token 权限。"); }
-    finally { btn.disabled = false; btn.innerText = "开始上传"; }
+    } catch (e) { 
+        alert("上传中出现错误，请检查网络或 Token 权限。"); 
+    } finally { 
+        btn.disabled = false; btn.innerText = "开始上传"; 
+    }
 };
 
 // --- 5. 辅助工具 ---
