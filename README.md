@@ -17,8 +17,11 @@
 🔗Logo 门户：点击左上角 J-git 标志，一键直达当前操作的仓库页面。
 
 📸 界面预览
+
 ![](https://github.com/baidu8/J-git/blob/main/J-git-h.png)
+
 ![](https://github.com/baidu8/J-git/blob/main/J-git-b.png)
+
 🛠️ 安装指南
 下载本项目仓库到本地。
 
@@ -52,12 +55,4 @@ delete_repo (可选：若需在插件内删除仓库则必选)
 
 数据安全：你的 Token 仅加密存储在浏览器本地（Chrome Storage），不会上传到任何第三方服务器。
 
-📜 开源协议
-本项目基于 MIT License 协议开源。
-
 ✨ 觉得好用？别忘了给一个 Star 鼓励一下！
-
-💡 接下来你可以：
-替换链接：记得把 README 里的 [](https://github.com/baidu8/J-git) 替换为你真实的仓库地址。
-
-添加 License：如果需要，我可以帮你再写一份标准的 MIT License 文本。
