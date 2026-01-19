@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "J-git",
+  "version": "1.0.0",
+  "description": "一键高效上传文件到 GitHub 仓库，支持仓库与分支的增删改查管理。",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.github.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "32": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png",
+    "192": "icon.png"
+  }
+}
