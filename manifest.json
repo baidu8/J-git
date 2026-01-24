@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "J-git",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "description": "一键高效上传文件到 GitHub 仓库，支持仓库与分支的增删改查管理。",
   "permissions": [
     "storage"
