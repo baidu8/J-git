@@ -9,34 +9,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadRepos(data.last_repo, data.last_branch);
     }
 
-const donateBtn = document.getElementById('donate-btn');
+    const donateBtn = document.getElementById('donate-btn');
     const donateModal = document.getElementById('donate-modal');
     const closeDonate = document.getElementById('close-donate');
 
-    // 点击显示打赏层
     donateBtn.onclick = (e) => {
         e.preventDefault();
         donateModal.style.display = 'flex';
     };
 
-    // 点击关闭按钮隐藏
     closeDonate.onclick = () => {
         donateModal.style.display = 'none';
     };
 
-    // 点击遮罩层空白处也隐藏
     donateModal.onclick = (e) => {
         if (e.target === donateModal) donateModal.style.display = 'none';
     };
 
-    // 1. 左上角 Logo 跳转逻辑
     document.getElementById('brand-link').onclick = () => {
         const repo = document.getElementById('repo-select').value;
         const url = repo ? `https://github.com/${repo}` : 'https://github.com/';
-        chrome.tabs.create({ url: url }); // 使用插件标准 API 跳转
+        chrome.tabs.create({ url: url });
     };
 
-    // 2. 右下角项目仓库地址跳转逻辑 (新增)
     const projectLink = document.getElementById('project-link');
     if (projectLink) {
         projectLink.onclick = (e) => {
@@ -48,20 +43,32 @@ const donateBtn = document.getElementById('donate-btn');
     document.getElementById('limit-info').onclick = (e) => {
         e.preventDefault();
         alert(
-        "🚀 J-git 完整使用与限制指南\n" +
-        "————————————————————\n" +
-        "📦 【如何使用】\n" +
-        "1. 授权：点击右上角设置 Token (需包含 repo 权限，删除需 delete_repo)。\n" +
-        "2. 选择：在搜索框输入关键词秒找仓库，点击 🔄 强制同步数据。\n" +
-        "3. 上传：支持单/多文件拖拽，点击【开始上传】自动触发。\n" +
-        "4. 快捷：上传后链接自动入剪贴板；点击左上角 Logo 直达仓库页。\n\n" +
-        "⚠️ 【限制与须知】\n" +
-        "1. 自动覆盖：已开启！同名文件将直接更新版本，请谨慎操作。\n" +
-        "2. 文件大小：受 API 限制，建议单文件不超过 25MB 以保证稳定。\n" +
-        "3. 同步延迟：GitHub 缓存可能导致重命名后下拉框数据没变，请手动刷新。\n" +
-        "4. 空仓库说明：新建仓库会默认创建 README.md 以初始化分支。\n" +
-        "5. 安全提示：Token 仅保存在浏览器本地，请妥善保管。"
-    );
+            "🚀 J-git 完整使用与限制指南\n" +
+            "————————————————————\n" +
+            "📦 【如何使用】\n" +
+            "1. 授权：点击右上角设置 Token (需包含 repo 权限，删除需 delete_repo)。\n" +
+            "2. 选择：在搜索框输入关键词秒找仓库，点击 🔄 强制同步数据。\n" +
+            "3. 上传：支持单/多文件拖拽，点击【开始上传】自动触发。\n" +
+            "4. 快捷：上传后链接自动入剪贴板；点击左上角 Logo 直达仓库页。\n\n" +
+            "⚠️ 【限制与须知】\n" +
+            "1. 自动覆盖：已开启！同名文件将直接更新版本，请谨慎操作。\n" +
+            "2. 文件大小：受 API 限制，建议单文件不超过 25MB 以保证稳定。\n" +
+            "3. 同步延迟：GitHub 缓存可能导致重命名后下拉框数据没变，请手动刷新。\n" +
+            "4. 空仓库说明：新建仓库会默认创建 README.md 以初始化分支。\n" +
+            "5. 安全提示：Token 仅保存在浏览器本地，请妥善保管。"
+        );
+    };
+
+    // 新增：新建文件夹按钮逻辑
+    document.getElementById('add-folder-btn').onclick = () => {
+        const newFolderName = prompt("请输入新文件夹名称 (例如: images/assets):");
+        if (newFolderName) {
+            const folderSelect = document.getElementById('folder-select');
+            const cleanPath = newFolderName.replace(/^\/+|\/+$/g, ''); // 去除首尾斜杠
+            const option = new Option(`[新] ${cleanPath}`, cleanPath);
+            option.selected = true;
+            folderSelect.appendChild(option);
+        }
     };
 });
 
@@ -101,57 +108,7 @@ document.getElementById('repo-search').oninput = (e) => {
     renderRepoOptions(filtered, document.getElementById('repo-select').value);
 };
 
-document.getElementById('new-repo-btn').onclick = async () => {
-    const name = prompt("请输入新仓库名称:");
-    if (!name) return;
-    const { github_token } = await chrome.storage.local.get('github_token');
-    try {
-        const res = await fetch('https://api.github.com/user/repos', {
-            method: 'POST',
-            headers: { 'Authorization': `token ${github_token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, auto_init: true })
-        });
-        if (res.ok) {
-            const data = await res.json();
-            chrome.storage.local.set({ last_repo: data.full_name });
-            setTimeout(() => loadRepos(data.full_name), 1500);
-        }
-    } catch (e) { alert("创建失败"); }
-};
-
-document.getElementById('edit-repo-btn').onclick = async () => {
-    const repo = document.getElementById('repo-select').value;
-    if (!repo) return alert("请先选择仓库");
-    const newName = prompt("新名称:", repo.split('/')[1]);
-    if (!newName) return;
-    const { github_token } = await chrome.storage.local.get('github_token');
-    const res = await fetch(`https://api.github.com/repos/${repo}`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `token ${github_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName })
-    });
-    if (res.ok) {
-        const newPath = `${repo.split('/')[0]}/${newName}`;
-        chrome.storage.local.set({ last_repo: newPath });
-        setTimeout(() => loadRepos(newPath), 1500);
-    }
-};
-
-document.getElementById('delete-repo-btn').onclick = async () => {
-    const repo = document.getElementById('repo-select').value;
-    if (!repo) return alert("请选择仓库");
-    if (prompt(`确认删除？请输入全名 [ ${repo} ]：`) !== repo) return;
-    const { github_token } = await chrome.storage.local.get('github_token');
-    const res = await fetch(`https://api.github.com/repos/${repo}`, {
-        method: 'DELETE', headers: { 'Authorization': `token ${github_token}` }
-    });
-    if (res.status === 204) {
-        chrome.storage.local.remove(['last_repo', 'last_branch']);
-        setTimeout(() => loadRepos(), 1500);
-    } else { alert("删除失败，请检查 delete_repo 权限。"); }
-};
-
-// --- 3. 分支管理逻辑 ---
+// --- 3. 分支与文件夹管理逻辑 ---
 
 async function loadBranches(repo, preSelectBranch = null) {
     const { github_token } = await chrome.storage.local.get('github_token');
@@ -170,47 +127,44 @@ async function loadBranches(repo, preSelectBranch = null) {
             else if (!preSelectBranch && (br.name === 'main' || br.name === 'master')) opt.selected = true;
             branchSelect.appendChild(opt);
         });
+        // 分支加载完成后，触发文件夹加载
+        loadFolders();
     } catch (e) { branchSelect.innerHTML = '<option>获取失败</option>'; }
 }
 
-document.getElementById('new-branch-btn').onclick = async () => {
-    const repo = document.getElementById('repo-select').value;
-    const newBr = prompt("输入新分支名:");
-    if (!repo || !newBr) return;
-    const { github_token } = await chrome.storage.local.get('github_token');
-    try {
-        const repoRes = await fetch(`https://api.github.com/repos/${repo}`, { headers: { 'Authorization': `token ${github_token}` } });
-        const repoData = await repoRes.json();
-        const baseRes = await fetch(`https://api.github.com/repos/${repo}/git/refs/heads/${repoData.default_branch}`, { headers: { 'Authorization': `token ${github_token}` } });
-        const baseData = await baseRes.json();
-        const res = await fetch(`https://api.github.com/repos/${repo}/git/refs`, {
-            method: 'POST',
-            headers: { 'Authorization': `token ${github_token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ref: `refs/heads/${newBr}`, sha: baseData.object.sha })
-        });
-        if (res.ok) {
-            chrome.storage.local.set({ last_branch: newBr });
-            setTimeout(() => loadBranches(repo, newBr), 1500);
-        }
-    } catch (e) { alert("创建分支失败"); }
-};
-
-document.getElementById('delete-branch-btn').onclick = async () => {
+async function loadFolders() {
     const repo = document.getElementById('repo-select').value;
     const branch = document.getElementById('branch-select').value;
-    if (branch === 'main' || branch === 'master') return alert("禁止删除主分支。");
-    if (!confirm(`确定删除分支 [ ${branch} ]？`)) return;
+    const folderSelect = document.getElementById('folder-select');
     const { github_token } = await chrome.storage.local.get('github_token');
-    const res = await fetch(`https://api.github.com/repos/${repo}/git/refs/heads/${branch}`, {
-        method: 'DELETE', headers: { 'Authorization': `token ${github_token}` }
-    });
-    if (res.ok) {
-        chrome.storage.local.remove('last_branch');
-        setTimeout(() => loadBranches(repo), 1500);
-    }
-};
 
-// --- 4. 上传逻辑 (核心：支持自动覆盖) ---
+    if (!repo || !branch) return;
+    folderSelect.innerHTML = '<option value="">根目录 / (加载中...)</option>';
+
+    try {
+        const branchRes = await fetch(`https://api.github.com/repos/${repo}/branches/${branch}`, {
+            headers: { 'Authorization': `token ${github_token}` }
+        });
+        const branchData = await branchRes.json();
+        const treeSha = branchData.commit.commit.tree.sha;
+
+        const treeRes = await fetch(`https://api.github.com/repos/${repo}/git/trees/${treeSha}?recursive=1`, {
+            headers: { 'Authorization': `token ${github_token}` }
+        });
+        const treeData = await treeRes.json();
+
+        const folders = treeData.tree.filter(item => item.type === 'tree');
+        folderSelect.innerHTML = '<option value="">根目录 /</option>';
+        folders.forEach(f => {
+            const opt = new Option(f.path, f.path);
+            folderSelect.appendChild(opt);
+        });
+    } catch (e) {
+        folderSelect.innerHTML = '<option value="">根目录 /</option>';
+    }
+}
+
+// --- 4. 上传逻辑 (支持文件夹与自动覆盖) ---
 
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -234,11 +188,13 @@ document.getElementById('upload-btn').onclick = async () => {
     const { github_token } = await chrome.storage.local.get('github_token');
     const repo = document.getElementById('repo-select').value;
     const branch = document.getElementById('branch-select').value;
+    const folder = document.getElementById('folder-select').value;
+    
     if (!repo || !branch) return alert("请选择完整路径");
 
     btn.disabled = true; btn.innerText = "处理中...";
     try {
-        let urlList = []; // 用于存储所有成功上传的链接
+        let urlList = [];
         
         for (const file of selectedFiles) {
             const base64 = await new Promise(r => { 
@@ -247,10 +203,13 @@ document.getElementById('upload-btn').onclick = async () => {
                 rd.onload = () => r(rd.result.split(',')[1]); 
             });
 
+            // 构造最终的 GitHub 存储路径
+            const finalPath = folder ? `${folder}/${file.name}` : file.name;
+
             // 自动覆盖逻辑 (获取 SHA)
             let fileSha = null;
             try {
-                const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${file.name}?ref=${branch}`, {
+                const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${finalPath}?ref=${branch}`, {
                     headers: { 'Authorization': `token ${github_token}` }
                 });
                 if (checkRes.ok) {
@@ -260,35 +219,35 @@ document.getElementById('upload-btn').onclick = async () => {
             } catch (e) {}
 
             const uploadBody = {
-                message: `J-git upload: ${file.name}`,
+                message: `J-git upload: ${finalPath}`,
                 content: base64,
                 branch: branch
             };
             if (fileSha) uploadBody.sha = fileSha;
 
-            const uploadRes = await fetch(`https://api.github.com/repos/${repo}/contents/${file.name}`, {
+            const uploadRes = await fetch(`https://api.github.com/repos/${repo}/contents/${finalPath}`, {
                 method: 'PUT',
                 headers: { 'Authorization': `token ${github_token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(uploadBody)
             });
 
             if (uploadRes.ok) {
-                // 将当前文件链接加入数组
-                const fileUrl = `https://github.com/${repo}/blob/${branch}/${file.name}`;
+                const fileUrl = `https://cdn.jsdelivr.net/gh/${repo}@${branch}/${finalPath}`;
                 urlList.push(fileUrl);
             }
         }
 
-        // 核心改动：合并所有链接并复制
         if (urlList.length > 0) {
-            const copyText = urlList.join('\n'); // 用换行符连接多个链接
+            const copyText = urlList.join('\n');
             navigator.clipboard.writeText(copyText).then(() => {
                 alert(`🎉 成功上传 ${urlList.length} 个文件！\n链接已全部复制到剪贴板。`);
             }).catch(() => alert(`🎉 上传成功！`));
         }
         resetUI();
+        // 上传完成后刷新文件夹列表（以防新建了文件夹）
+        loadFolders();
     } catch (e) { 
-        alert("上传中出现错误，请检查网络或 Token 权限。"); 
+        alert("上传失败，请检查网络或 Token 权限。"); 
     } finally { 
         btn.disabled = false; btn.innerText = "开始上传"; 
     }
@@ -322,7 +281,10 @@ document.getElementById('repo-select').onchange = (e) => {
 };
 
 document.getElementById('branch-select').onchange = (e) => {
-    if(e.target.value) chrome.storage.local.set({ last_branch: e.target.value });
+    if(e.target.value) {
+        chrome.storage.local.set({ last_branch: e.target.value });
+        loadFolders(); // 分支切换，刷新文件夹
+    }
 };
 
 document.getElementById('refresh-repos').onclick = () => loadRepos();
